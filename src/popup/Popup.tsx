@@ -25,8 +25,18 @@ export function Popup() {
   const [auditData, setAuditData] = useState<AuditData | null>(null);
   const [fixes, setFixes] = useState<AIFix[]>([]);
   const [loadingFixes, setLoadingFixes] = useState(false);
-  const [activeTab, setActiveTab] = useState<"audit" | "history">("audit");
+  const [activeTab, setActiveTab] = useState<"audit" | "history" | "settings">("audit");
   const [history, setHistory] = useState<AuditData[]>([]);
+  const [apiKey, setApiKey] = useState("");
+  const [apiKeySaved, setApiKeySaved] = useState(false);
+
+  useEffect(() => {
+    chrome.storage.local.get("anthropic_api_key", (result) => {
+      if (result.anthropic_api_key) {
+        setApiKey(result.anthropic_api_key);
+      }
+    });
+  }, []);
   const [revealedScores, setRevealedScores] = useState<{
     performance: number | null;
     seo: number | null;
@@ -148,6 +158,14 @@ export function Popup() {
           >
             History
           </button>
+          <button
+            onClick={() => setActiveTab("settings")}
+            className={`text-xs px-2 py-1 rounded ${
+              activeTab === "settings" ? "bg-cyan-600 text-white" : "text-gray-400 hover:text-white"
+            }`}
+          >
+            Settings
+          </button>
         </div>
       </header>
 
@@ -255,6 +273,54 @@ export function Popup() {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {activeTab === "settings" && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-300 mb-2">AI Fix Suggestions</h2>
+            <p className="text-xs text-gray-500 mb-3">
+              Enter your Anthropic API key to enable AI-powered fix suggestions. Get one at{" "}
+              <a href="https://console.anthropic.com" target="_blank" rel="noopener" className="text-cyan-400 hover:underline">
+                console.anthropic.com
+              </a>
+            </p>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => { setApiKey(e.target.value); setApiKeySaved(false); }}
+              placeholder="sk-ant-api03-..."
+              className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500"
+            />
+            <button
+              onClick={() => {
+                chrome.storage.local.set({ anthropic_api_key: apiKey }, () => {
+                  setApiKeySaved(true);
+                  setTimeout(() => setApiKeySaved(false), 2000);
+                });
+              }}
+              className="mt-2 w-full py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-sm font-medium transition-colors"
+            >
+              {apiKeySaved ? "Saved!" : "Save API Key"}
+            </button>
+            {apiKey && (
+              <button
+                onClick={() => {
+                  setApiKey("");
+                  chrome.storage.local.remove("anthropic_api_key");
+                }}
+                className="mt-2 w-full py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm text-red-400 transition-colors"
+              >
+                Remove Key
+              </button>
+            )}
+          </div>
+          <div className="border-t border-gray-800 pt-3">
+            <p className="text-xs text-gray-600">
+              Your API key is stored locally in your browser and is only sent to Anthropic's API when you click "Get AI Fix Suggestions".
+            </p>
+          </div>
         </div>
       )}
     </div>
