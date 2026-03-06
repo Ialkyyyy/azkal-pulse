@@ -25,6 +25,7 @@ export function Popup() {
   const [auditData, setAuditData] = useState<AuditData | null>(null);
   const [fixes, setFixes] = useState<AIFix[]>([]);
   const [loadingFixes, setLoadingFixes] = useState(false);
+  const [fixError, setFixError] = useState("");
   const [activeTab, setActiveTab] = useState<"audit" | "history" | "settings">("audit");
   const [history, setHistory] = useState<AuditData[]>([]);
   const [apiKey, setApiKey] = useState("");
@@ -112,10 +113,13 @@ export function Popup() {
   const handleGetFixes = async () => {
     if (!auditData) return;
     setLoadingFixes(true);
+    setFixError("");
     try {
       const aiFixes = await getAIFixes(auditData);
       setFixes(aiFixes);
-    } catch (err) {
+    } catch (err: any) {
+      const msg = err?.message || "AI fix generation failed";
+      setFixError(msg);
       console.error("AI fix generation failed:", err);
     } finally {
       setLoadingFixes(false);
@@ -239,6 +243,10 @@ export function Popup() {
               >
                 {loadingFixes ? "Getting AI Fixes..." : "Get AI Fix Suggestions"}
               </button>
+
+              {fixError && (
+                <p className="text-xs text-red-400 mt-1 mb-2">{fixError}</p>
+              )}
 
               {fixes.length > 0 && (
                 <div className="space-y-2 mb-3">
