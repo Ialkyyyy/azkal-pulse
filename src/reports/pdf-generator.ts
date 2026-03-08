@@ -1,7 +1,7 @@
-import jsPDF from "jspdf";
 import { AuditData } from "../utils/scoring";
 
 export async function generatePDFReport(data: AuditData): Promise<void> {
+  const { default: jsPDF } = await import("jspdf");
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
 

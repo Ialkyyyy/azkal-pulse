@@ -37,6 +37,7 @@ export async function getAIFixes(auditData: AuditData): Promise<AIFix[]> {
       "Content-Type": "application/json",
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
+      // Required for browser extensions — there's no server to proxy through
       "anthropic-dangerous-direct-browser-access": "true",
     },
     body: JSON.stringify({
@@ -52,11 +53,17 @@ export async function getAIFixes(auditData: AuditData): Promise<AIFix[]> {
     }),
   });
 
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: { message: response.statusText } }));
+    throw new Error(err.error?.message || `API request failed (${response.status})`);
+  }
+
   const data = await response.json();
   const text = data.content?.[0]?.text || "[]";
 
   try {
-    return JSON.parse(text);
+    const cleaned = text.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+    return JSON.parse(cleaned);
   } catch {
     return [];
   }

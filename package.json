@@ -1,6 +1,7 @@
 {
   "name": "azkal-pulse",
   "version": "1.0.0",
+  "type": "module",
   "description": "Chrome extension for instant site audits with AI-powered fix suggestions",
   "scripts": {
     "dev": "vite",

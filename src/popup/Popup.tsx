@@ -7,15 +7,12 @@ import { runAudit, AuditData } from "../utils/scoring";
 import { getAIFixes, AIFix } from "../ai/claude";
 import { getHistory, saveToHistory } from "../utils/storage";
 
-type ScanPhase = "idle" | "connecting" | "analyzing-dom" | "checking-perf" | "checking-seo" | "checking-a11y" | "scoring" | "done";
+type ScanPhase = "idle" | "connecting" | "analyzing-dom" | "scoring" | "done";
 
 const PHASE_LABELS: Record<ScanPhase, string> = {
   idle: "",
   connecting: "Connecting to page...",
-  "analyzing-dom": "Analyzing DOM structure...",
-  "checking-perf": "Measuring performance...",
-  "checking-seo": "Checking SEO signals...",
-  "checking-a11y": "Testing accessibility...",
+  "analyzing-dom": "Analyzing page...",
   scoring: "Calculating scores...",
   done: "Audit complete",
 };
@@ -56,49 +53,44 @@ export function Popup() {
     }, 20);
   };
 
+  const [auditError, setAuditError] = useState("");
+
   const handleAudit = async () => {
     setAuditData(null);
     setFixes([]);
+    setAuditError("");
     setRevealedScores({ performance: null, seo: null, accessibility: null });
 
     try {
-      // Phase 1: Connect
       setScanPhase("connecting");
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (!tab.id || !tab.url) { setScanPhase("idle"); return; }
 
-      await delay(400);
+      // Can't audit internal browser pages
+      if (tab.url.startsWith("chrome://") || tab.url.startsWith("chrome-extension://") || tab.url.startsWith("about:")) {
+        setAuditError("Can't audit internal browser pages. Navigate to a website first.");
+        setScanPhase("idle");
+        return;
+      }
 
-      // Phase 2: Analyze DOM
       setScanPhase("analyzing-dom");
       const results = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: analyzeCurrentPage,
       });
       const pageData = results[0]?.result;
-      if (!pageData) { setScanPhase("idle"); return; }
+      if (!pageData) {
+        setAuditError("Failed to analyze page. The page may have blocked script injection.");
+        setScanPhase("idle");
+        return;
+      }
 
-      await delay(500);
-
-      // Phase 3-5: Run checks (scoring happens synchronously but we show phases)
-      setScanPhase("checking-perf");
-      await delay(600);
-
-      setScanPhase("checking-seo");
-      await delay(500);
-
-      setScanPhase("checking-a11y");
-      await delay(500);
-
-      // Phase 6: Score
       setScanPhase("scoring");
       const audit = runAudit(pageData, tab.url);
-      await delay(300);
 
       setAuditData(audit);
       setScanPhase("done");
 
-      // Animate scores one by one
       setTimeout(() => animateScore(audit.scores.performance, "performance"), 100);
       setTimeout(() => animateScore(audit.scores.seo, "seo"), 400);
       setTimeout(() => animateScore(audit.scores.accessibility, "accessibility"), 700);
@@ -106,6 +98,7 @@ export function Popup() {
       await saveToHistory(audit);
     } catch (err) {
       console.error("Audit failed:", err);
+      setAuditError(err instanceof Error ? err.message : "Audit failed unexpectedly.");
       setScanPhase("idle");
     }
   };
@@ -117,8 +110,8 @@ export function Popup() {
     try {
       const aiFixes = await getAIFixes(auditData);
       setFixes(aiFixes);
-    } catch (err: any) {
-      const msg = err?.message || "AI fix generation failed";
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "AI fix generation failed";
       setFixError(msg);
       console.error("AI fix generation failed:", err);
     } finally {
@@ -134,12 +127,9 @@ export function Popup() {
 
   const progressPercent =
     scanPhase === "idle" ? 0 :
-    scanPhase === "connecting" ? 10 :
-    scanPhase === "analyzing-dom" ? 30 :
-    scanPhase === "checking-perf" ? 50 :
-    scanPhase === "checking-seo" ? 65 :
-    scanPhase === "checking-a11y" ? 80 :
-    scanPhase === "scoring" ? 95 : 100;
+    scanPhase === "connecting" ? 15 :
+    scanPhase === "analyzing-dom" ? 50 :
+    scanPhase === "scoring" ? 90 : 100;
 
   return (
     <div className="bg-gray-950 text-white min-h-[500px] p-4">
@@ -183,6 +173,10 @@ export function Popup() {
             {auditing ? "Scanning..." : scanPhase === "done" ? "Re-run Audit" : "Run Audit"}
           </button>
 
+          {auditError && (
+            <p className="text-xs text-red-400 mb-3">{auditError}</p>
+          )}
+
           {/* Scanning animation */}
           {auditing && (
             <div className="mb-4">
@@ -200,17 +194,8 @@ export function Popup() {
                 {scanPhase !== "connecting" && (
                   <ScanStep label="Page connected" done />
                 )}
-                {["analyzing-dom", "checking-perf", "checking-seo", "checking-a11y", "scoring"].indexOf(scanPhase) > 0 && (
-                  <ScanStep label="DOM analyzed" done />
-                )}
-                {["checking-seo", "checking-a11y", "scoring"].indexOf(scanPhase) >= 0 && scanPhase !== "checking-perf" && (
-                  <ScanStep label="Performance measured" done />
-                )}
-                {["checking-a11y", "scoring"].indexOf(scanPhase) >= 0 && (
-                  <ScanStep label="SEO signals checked" done />
-                )}
                 {scanPhase === "scoring" && (
-                  <ScanStep label="Accessibility tested" done />
+                  <ScanStep label="Page analyzed" done />
                 )}
               </div>
             </div>
@@ -342,10 +327,6 @@ function ScanStep({ label, done }: { label: string; done: boolean }) {
       <span className={done ? "text-gray-300" : "text-gray-600"}>{label}</span>
     </div>
   );
-}
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function analyzeCurrentPage() {
