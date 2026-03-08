@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "azkal-pulse",
+  "version": "1.0.0",
+  "description": "Instant site audit with AI-powered fix suggestions. Performance, SEO, and accessibility in one click.",
+  "permissions": ["activeTab", "storage", "scripting"],
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}
