@@ -158,6 +158,24 @@ export function runAudit(pageData: PageData, url: string): AuditData {
     perfScore -= 8;
   }
 
+  // DOMContentLoaded
+  if (pageData.domContentLoaded > 3000) {
+    issues.push({ message: `Slow DOM ready: ${(pageData.domContentLoaded / 1000).toFixed(1)}s (aim for <2s)`, category: "performance", severity: "high" });
+    perfScore -= 12;
+  } else if (pageData.domContentLoaded > 2000) {
+    issues.push({ message: `DOM ready: ${(pageData.domContentLoaded / 1000).toFixed(1)}s (aim for <2s)`, category: "performance", severity: "medium" });
+    perfScore -= 5;
+  }
+
+  // Total resource size
+  if (pageData.totalResourceSize > 5_000_000) {
+    issues.push({ message: `Heavy page: ${(pageData.totalResourceSize / 1_000_000).toFixed(1)}MB transferred (aim for <3MB)`, category: "performance", severity: "high" });
+    perfScore -= 12;
+  } else if (pageData.totalResourceSize > 3_000_000) {
+    issues.push({ message: `Large page: ${(pageData.totalResourceSize / 1_000_000).toFixed(1)}MB transferred (aim for <3MB)`, category: "performance", severity: "medium" });
+    perfScore -= 6;
+  }
+
   // Service worker
   if (!pageData.hasServiceWorker && pageData.isHttps) {
     issues.push({ message: "No service worker detected (add one for offline support & faster repeat visits)", category: "performance", severity: "low" });
@@ -254,6 +272,18 @@ export function runAudit(pageData: PageData, url: string): AuditData {
   if (pageData.imagesWithoutAlt > 3) {
     issues.push({ message: `${pageData.imagesWithoutAlt} images missing alt text (hurts image SEO)`, category: "seo", severity: "medium" });
     seoScore -= Math.min(10, pageData.imagesWithoutAlt * 2);
+  }
+
+  // Social meta tags
+  if (pageData.socialMetaTags === 0 && pageData.hasOpenGraph === false) {
+    issues.push({ message: "No social meta tags (og:, twitter:) found", category: "seo", severity: "medium" });
+    seoScore -= 5;
+  }
+
+  // Charset
+  if (!pageData.charset) {
+    issues.push({ message: "Missing charset declaration (add <meta charset=\"UTF-8\">)", category: "seo", severity: "medium" });
+    seoScore -= 5;
   }
 
   // ═══════════════════════════════════
