@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>azkal-pulse — Privacy Policy</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; color: #222; line-height: 1.6; }
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.15rem; margin-top: 1.5em; }
+    p, li { font-size: 0.95rem; }
+    ul { padding-left: 1.25em; }
+    .updated { color: #666; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <h1>azkal-pulse — Privacy Policy</h1>
+  <p class="updated">Last updated: March 9, 2026</p>
+
+  <h2>Overview</h2>
+  <p>azkal-pulse is a Chrome extension that performs instant site audits for performance, SEO, and accessibility. This policy explains what data the extension collects, how it is used, stored, and shared.</p>
+
+  <h2>Data Collection</h2>
+  <p>azkal-pulse collects and processes the following data:</p>
+  <ul>
+    <li><strong>Page audit data</strong> — When you run an audit, the extension analyzes the currently active tab's DOM to generate performance, SEO, and accessibility scores. This includes page metadata (title, description, URL), DOM structure metrics, and detected issues.</li>
+    <li><strong>Anthropic API key</strong> — If you choose to use the AI fix suggestions feature, you provide your own Anthropic API key, which the extension stores locally in your browser.</li>
+    <li><strong>Audit history</strong> — The extension stores your most recent 50 audit results locally in your browser for the History tab.</li>
+  </ul>
+
+  <h2>Data Usage</h2>
+  <ul>
+    <li><strong>Audit data</strong> is used solely to generate scores and identify issues on the page you are auditing. It is processed locally in your browser.</li>
+    <li><strong>AI fix suggestions</strong> — When you explicitly click "Get AI Fix Suggestions", the extension sends the following to the Anthropic API (<code>api.anthropic.com</code>): the audited page's URL, its performance/SEO/accessibility scores, and the list of detected issues. This data is sent only when you initiate the request.</li>
+    <li>Your API key is sent to Anthropic solely to authenticate the API request.</li>
+  </ul>
+
+  <h2>Data Storage</h2>
+  <ul>
+    <li>All data (API key, audit history) is stored <strong>locally</strong> in your browser using Chrome's <code>storage.local</code> API.</li>
+    <li>No data is stored on any external server controlled by azkal-pulse.</li>
+    <li>You can clear all stored data at any time by removing the extension or clearing its storage via Chrome's extension settings.</li>
+  </ul>
+
+  <h2>Data Sharing</h2>
+  <ul>
+    <li>azkal-pulse does <strong>not</strong> sell, share, or transfer your data to any third party, except as described below.</li>
+    <li>When you use the AI fix suggestions feature, audit summary data (URL, scores, issues) is sent to <strong>Anthropic</strong> via their API. Anthropic's use of this data is governed by <a href="https://www.anthropic.com/policies/privacy" target="_blank" rel="noopener">Anthropic's Privacy Policy</a>.</li>
+    <li>No analytics, telemetry, or tracking data is collected or transmitted.</li>
+  </ul>
+
+  <h2>Permissions</h2>
+  <p>The extension requests the following Chrome permissions:</p>
+  <ul>
+    <li><strong>activeTab</strong> — To access and analyze the current tab when you initiate an audit.</li>
+    <li><strong>storage</strong> — To save your API key and audit history locally.</li>
+    <li><strong>scripting</strong> — To inject the audit analysis script into the current tab.</li>
+  </ul>
+
+  <h2>Changes to This Policy</h2>
+  <p>If this policy is updated, the changes will be posted here with an updated date. Continued use of the extension after changes constitutes acceptance of the revised policy.</p>
+
+  <h2>Contact</h2>
+  <p>For questions or concerns about this privacy policy, please open an issue at <a href="https://github.com/Ialkyyyy/azkal-pulse" target="_blank" rel="noopener">github.com/Ialkyyyy/azkal-pulse</a>.</p>
+</body>
+</html>
