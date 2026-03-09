@@ -11,10 +11,11 @@
 Lighthouse tells you what's wrong. **azkal-pulse tells you how to fix it** with actual code you can copy and paste.
 
 - **One-click audits** -- performance, SEO, and accessibility scores in seconds
-- **30+ deep checks** -- render-blocking resources, missing alt text, heading order, and more
+- **35+ deep checks** -- render-blocking resources, missing alt text, heading order, page weight, DOMContentLoaded, SSL meta, and more
 - **AI-powered fixes** -- Claude AI generates real code snippets to resolve each issue
-- **Client Report Mode** -- export a professional PDF report to send to clients
-- **Audit history** -- track scores over time for any site
+- **Score comparison** -- see +/- deltas against your previous audit for the same URL
+- **Client Report Mode** -- export a professional PDF or copy a text summary to clipboard
+- **Audit history** -- track scores over time for any site with colored score indicators
 - **Settings page** -- easily configure your API key right in the extension
 
 ## For Freelancers
