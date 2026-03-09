@@ -3,6 +3,7 @@ import React from "react";
 interface ScoreCardProps {
   label: string;
   score: number | null;
+  delta?: number;
 }
 
 function getColor(score: number): string {
@@ -23,7 +24,7 @@ function getRingColor(score: number): string {
   return "stroke-red-400";
 }
 
-export function ScoreCard({ label, score }: ScoreCardProps) {
+export function ScoreCard({ label, score, delta }: ScoreCardProps) {
   const isRevealed = score !== null;
   const displayScore = score ?? 0;
   const circumference = 2 * Math.PI * 28;
@@ -61,6 +62,11 @@ export function ScoreCard({ label, score }: ScoreCardProps) {
         </div>
       </div>
       <div className="text-xs text-gray-400">{label}</div>
+      {isRevealed && delta !== undefined && delta !== 0 && (
+        <div className={`text-[10px] mt-0.5 ${delta > 0 ? 'text-green-400' : 'text-red-400'}`}>
+          {delta > 0 ? '+' : ''}{delta}
+        </div>
+      )}
     </div>
   );
 }

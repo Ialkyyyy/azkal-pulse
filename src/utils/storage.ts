@@ -20,3 +20,12 @@ export async function getHistory(): Promise<AuditData[]> {
 export async function clearHistory(): Promise<void> {
   await chrome.storage.local.remove(HISTORY_KEY);
 }
+
+export async function getPreviousAudit(url: string): Promise<AuditData | null> {
+  const history = await getHistory();
+  // Skip the first entry (it's the current audit), find the most recent one for this URL
+  for (let i = 1; i < history.length; i++) {
+    if (history[i].url === url) return history[i];
+  }
+  return null;
+}

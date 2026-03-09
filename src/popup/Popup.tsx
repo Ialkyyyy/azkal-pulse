@@ -5,7 +5,7 @@ import { FixSuggestion } from "./components/FixSuggestion";
 import { ReportExport } from "./components/ReportExport";
 import { runAudit, AuditData } from "../utils/scoring";
 import { getAIFixes, AIFix } from "../ai/claude";
-import { getHistory, saveToHistory } from "../utils/storage";
+import { getHistory, saveToHistory, clearHistory, getPreviousAudit } from "../utils/storage";
 
 type ScanPhase = "idle" | "connecting" | "analyzing-dom" | "scoring" | "done";
 
@@ -27,6 +27,7 @@ export function Popup() {
   const [history, setHistory] = useState<AuditData[]>([]);
   const [apiKey, setApiKey] = useState("");
   const [apiKeySaved, setApiKeySaved] = useState(false);
+  const [prevAudit, setPrevAudit] = useState<AuditData | null>(null);
 
   useEffect(() => {
     chrome.storage.local.get("anthropic_api_key", (result) => {
@@ -96,6 +97,8 @@ export function Popup() {
       setTimeout(() => animateScore(audit.scores.accessibility, "accessibility"), 700);
 
       await saveToHistory(audit);
+      const prev = await getPreviousAudit(tab.url);
+      setPrevAudit(prev);
     } catch (err) {
       console.error("Audit failed:", err);
       setAuditError(err instanceof Error ? err.message : "Audit failed unexpectedly.");
@@ -204,9 +207,9 @@ export function Popup() {
           {auditData && scanPhase === "done" && (
             <>
               <div className="grid grid-cols-3 gap-2 mb-4">
-                <ScoreCard label="Performance" score={revealedScores.performance} />
-                <ScoreCard label="SEO" score={revealedScores.seo} />
-                <ScoreCard label="Accessibility" score={revealedScores.accessibility} />
+                <ScoreCard label="Performance" score={revealedScores.performance} delta={prevAudit ? auditData.scores.performance - prevAudit.scores.performance : undefined} />
+                <ScoreCard label="SEO" score={revealedScores.seo} delta={prevAudit ? auditData.scores.seo - prevAudit.scores.seo : undefined} />
+                <ScoreCard label="Accessibility" score={revealedScores.accessibility} delta={prevAudit ? auditData.scores.accessibility - prevAudit.scores.accessibility : undefined} />
               </div>
 
               <div className="mb-3">
@@ -249,6 +252,16 @@ export function Popup() {
 
       {activeTab === "history" && (
         <div className="space-y-2">
+          {history.length > 0 && (
+            <div className="flex justify-end mb-1">
+              <button
+                onClick={async () => { await clearHistory(); setHistory([]); }}
+                className="text-xs text-gray-600 hover:text-red-400 transition-colors"
+              >
+                Clear history
+              </button>
+            </div>
+          )}
           {history.length === 0 ? (
             <p className="text-gray-500 text-sm text-center mt-8">No audit history yet</p>
           ) : (
@@ -259,9 +272,9 @@ export function Popup() {
                   <span className="text-gray-500 text-xs">{new Date(item.timestamp).toLocaleDateString()}</span>
                 </div>
                 <div className="flex gap-3 mt-1 text-xs">
-                  <span>Perf: {item.scores.performance}</span>
-                  <span>SEO: {item.scores.seo}</span>
-                  <span>A11y: {item.scores.accessibility}</span>
+                  <ScorePill label="Perf" score={item.scores.performance} />
+                  <ScorePill label="SEO" score={item.scores.seo} />
+                  <ScorePill label="A11y" score={item.scores.accessibility} />
                 </div>
               </div>
             ))
@@ -318,6 +331,11 @@ export function Popup() {
       )}
     </div>
   );
+}
+
+function ScorePill({ label, score }: { label: string; score: number }) {
+  const color = score >= 90 ? 'text-green-400' : score >= 50 ? 'text-yellow-400' : 'text-red-400';
+  return <span className={color}>{label}: {score}</span>;
 }
 
 function ScanStep({ label, done }: { label: string; done: boolean }) {
