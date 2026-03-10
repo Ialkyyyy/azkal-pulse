@@ -28,6 +28,7 @@ export function Popup() {
   const [apiKey, setApiKey] = useState("");
   const [apiKeySaved, setApiKeySaved] = useState(false);
   const [prevAudit, setPrevAudit] = useState<AuditData | null>(null);
+  const [selectedHistory, setSelectedHistory] = useState<AuditData | null>(null);
 
   useEffect(() => {
     chrome.storage.local.get("anthropic_api_key", (result) => {
@@ -262,32 +263,73 @@ export function Popup() {
 
       {activeTab === "history" && (
         <div className="space-y-2">
-          {history.length > 0 && (
-            <div className="flex justify-end mb-1">
+          {selectedHistory ? (
+            <div>
               <button
-                onClick={async () => { await clearHistory(); setHistory([]); }}
-                className="text-xs text-gray-600 hover:text-red-400 transition-colors"
+                onClick={() => setSelectedHistory(null)}
+                className="text-xs text-cyan-400 hover:text-cyan-300 mb-2 flex items-center gap-1"
               >
-                Clear history
+                ← Back to history
               </button>
-            </div>
-          )}
-          {history.length === 0 ? (
-            <p className="text-gray-500 text-sm text-center mt-8">No audit history yet</p>
-          ) : (
-            history.map((item, i) => (
-              <div key={i} className="bg-gray-900 rounded-lg p-3 text-sm">
-                <div className="flex justify-between items-center">
-                  <span className="text-cyan-400 truncate max-w-[200px]">{item.url}</span>
-                  <span className="text-gray-500 text-xs">{new Date(item.timestamp).toLocaleDateString()}</span>
-                </div>
-                <div className="flex gap-3 mt-1 text-xs">
-                  <ScorePill label="Perf" score={item.scores.performance} />
-                  <ScorePill label="SEO" score={item.scores.seo} />
-                  <ScorePill label="A11y" score={item.scores.accessibility} />
-                </div>
+              <div className="bg-gray-900 rounded-lg p-3 mb-2">
+                <div className="text-cyan-400 text-sm truncate mb-1">{selectedHistory.url}</div>
+                <div className="text-gray-500 text-[10px]">{new Date(selectedHistory.timestamp).toLocaleString()}</div>
               </div>
-            ))
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <ScoreCard label="Performance" score={selectedHistory.scores.performance} />
+                <ScoreCard label="SEO" score={selectedHistory.scores.seo} />
+                <ScoreCard label="Accessibility" score={selectedHistory.scores.accessibility} />
+              </div>
+              <AuditResult data={selectedHistory} />
+            </div>
+          ) : (
+            <>
+              {history.length > 0 && (
+                <div className="flex justify-end mb-1">
+                  <button
+                    onClick={async () => { await clearHistory(); setHistory([]); }}
+                    className="text-xs text-gray-600 hover:text-red-400 transition-colors"
+                  >
+                    Clear history
+                  </button>
+                </div>
+              )}
+              {history.length === 0 ? (
+                <p className="text-gray-500 text-sm text-center mt-8">No audit history yet</p>
+              ) : (
+                history.map((item, i) => {
+                  const urlHistory = history.filter((h) => h.url === item.url);
+                  const avg = Math.round((item.scores.performance + item.scores.seo + item.scores.accessibility) / 3);
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedHistory(item)}
+                      className="w-full bg-gray-900 rounded-lg p-3 text-sm text-left hover:bg-gray-800/70 transition-colors"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="text-cyan-400 truncate max-w-[180px]">{item.url}</span>
+                        <span className="text-gray-500 text-xs">{new Date(item.timestamp).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1.5">
+                        <div className="flex gap-3 text-xs">
+                          <ScorePill label="Perf" score={item.scores.performance} />
+                          <ScorePill label="SEO" score={item.scores.seo} />
+                          <ScorePill label="A11y" score={item.scores.accessibility} />
+                        </div>
+                        {urlHistory.length > 1 && (
+                          <Sparkline
+                            values={urlHistory.slice(0, 8).reverse().map((h) =>
+                              Math.round((h.scores.performance + h.scores.seo + h.scores.accessibility) / 3)
+                            )}
+                            current={avg}
+                          />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </>
           )}
         </div>
       )}
@@ -378,6 +420,30 @@ function VitalPill({ label, value, unit, format, good, poor }: {
       <div className="text-[10px] text-gray-500">{label}</div>
       <div className={`text-xs font-medium ${color}`}>{format(value)}{unit}</div>
     </div>
+  );
+}
+
+function Sparkline({ values, current }: { values: number[]; current: number }) {
+  if (values.length < 2) return null;
+  const w = 48, h = 20, pad = 2;
+  const min = Math.min(...values) - 5;
+  const max = Math.max(...values) + 5;
+  const range = max - min || 1;
+  const points = values.map((v, i) => {
+    const x = pad + (i / (values.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    return `${x},${y}`;
+  }).join(" ");
+  const color = current >= 90 ? "#4ade80" : current >= 50 ? "#facc15" : "#f87171";
+  return (
+    <svg width={w} height={h} className="flex-shrink-0">
+      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
+      {values.length > 0 && (() => {
+        const lastX = pad + ((values.length - 1) / (values.length - 1)) * (w - pad * 2);
+        const lastY = h - pad - ((values[values.length - 1] - min) / range) * (h - pad * 2);
+        return <circle cx={lastX} cy={lastY} r="2" fill={color} />;
+      })()}
+    </svg>
   );
 }
 
