@@ -97,6 +97,12 @@ export function Popup() {
       setTimeout(() => animateScore(audit.scores.seo, "seo"), 400);
       setTimeout(() => animateScore(audit.scores.accessibility, "accessibility"), 700);
 
+      // Set badge with average score
+      const avg = Math.round((audit.scores.performance + audit.scores.seo + audit.scores.accessibility) / 3);
+      const badgeColor = avg >= 90 ? "#22c55e" : avg >= 50 ? "#eab308" : "#ef4444";
+      chrome.action.setBadgeText({ text: String(avg) });
+      chrome.action.setBadgeBackgroundColor({ color: badgeColor });
+
       await saveToHistory(audit);
       const prev = await getPreviousAudit(tab.url);
       setPrevAudit(prev);
@@ -244,7 +250,15 @@ export function Popup() {
               </button>
 
               {fixError && (
-                <p className="text-xs text-red-400 mt-1 mb-2">{fixError}</p>
+                <div className="flex items-center gap-2 mt-1 mb-2">
+                  <p className="text-xs text-red-400 flex-1">{fixError}</p>
+                  <button
+                    onClick={handleGetFixes}
+                    className="text-xs text-cyan-400 hover:text-cyan-300 flex-shrink-0"
+                  >
+                    Retry
+                  </button>
+                </div>
               )}
 
               {fixes.length > 0 && (
