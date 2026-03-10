@@ -47,6 +47,10 @@ export interface PageData {
   metaKeywords: boolean;
   hasSitemap: boolean;
   socialMetaTags: number;
+  lcp: number | null;
+  cls: number | null;
+  fcp: number | null;
+  ttfb: number | null;
 }
 
 export interface AuditIssue {
@@ -180,6 +184,52 @@ export function runAudit(pageData: PageData, url: string): AuditData {
   if (!pageData.hasServiceWorker && pageData.isHttps) {
     issues.push({ message: "No service worker detected (add one for offline support & faster repeat visits)", category: "performance", severity: "low" });
     perfScore -= 3;
+  }
+
+  // ── Core Web Vitals ──
+
+  // LCP (Largest Contentful Paint)
+  if (pageData.lcp !== null) {
+    if (pageData.lcp > 4000) {
+      issues.push({ message: `Poor LCP: ${(pageData.lcp / 1000).toFixed(1)}s (aim for <2.5s)`, category: "performance", severity: "high" });
+      perfScore -= 15;
+    } else if (pageData.lcp > 2500) {
+      issues.push({ message: `LCP needs improvement: ${(pageData.lcp / 1000).toFixed(1)}s (aim for <2.5s)`, category: "performance", severity: "medium" });
+      perfScore -= 8;
+    }
+  }
+
+  // CLS (Cumulative Layout Shift)
+  if (pageData.cls !== null) {
+    if (pageData.cls > 0.25) {
+      issues.push({ message: `Poor CLS: ${pageData.cls.toFixed(3)} (aim for <0.1)`, category: "performance", severity: "high" });
+      perfScore -= 15;
+    } else if (pageData.cls > 0.1) {
+      issues.push({ message: `CLS needs improvement: ${pageData.cls.toFixed(3)} (aim for <0.1)`, category: "performance", severity: "medium" });
+      perfScore -= 8;
+    }
+  }
+
+  // FCP (First Contentful Paint)
+  if (pageData.fcp !== null) {
+    if (pageData.fcp > 3000) {
+      issues.push({ message: `Poor FCP: ${(pageData.fcp / 1000).toFixed(1)}s (aim for <1.8s)`, category: "performance", severity: "high" });
+      perfScore -= 12;
+    } else if (pageData.fcp > 1800) {
+      issues.push({ message: `FCP needs improvement: ${(pageData.fcp / 1000).toFixed(1)}s (aim for <1.8s)`, category: "performance", severity: "medium" });
+      perfScore -= 5;
+    }
+  }
+
+  // TTFB (Time to First Byte)
+  if (pageData.ttfb !== null) {
+    if (pageData.ttfb > 1800) {
+      issues.push({ message: `Poor TTFB: ${(pageData.ttfb / 1000).toFixed(1)}s (aim for <0.8s)`, category: "performance", severity: "high" });
+      perfScore -= 12;
+    } else if (pageData.ttfb > 800) {
+      issues.push({ message: `TTFB needs improvement: ${(pageData.ttfb / 1000).toFixed(1)}s (aim for <0.8s)`, category: "performance", severity: "medium" });
+      perfScore -= 5;
+    }
   }
 
   // ═══════════════════════════════════

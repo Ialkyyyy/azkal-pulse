@@ -212,6 +212,16 @@ export function Popup() {
                 <ScoreCard label="Accessibility" score={revealedScores.accessibility} delta={prevAudit ? auditData.scores.accessibility - prevAudit.scores.accessibility : undefined} />
               </div>
 
+              {/* Web Vitals strip */}
+              {(auditData.pageData.lcp !== null || auditData.pageData.cls !== null || auditData.pageData.fcp !== null || auditData.pageData.ttfb !== null) && (
+                <div className="grid grid-cols-4 gap-1.5 mb-3">
+                  <VitalPill label="LCP" value={auditData.pageData.lcp} unit="s" format={(v) => (v / 1000).toFixed(1)} good={2500} poor={4000} />
+                  <VitalPill label="CLS" value={auditData.pageData.cls} unit="" format={(v) => v.toFixed(3)} good={0.1} poor={0.25} />
+                  <VitalPill label="FCP" value={auditData.pageData.fcp} unit="s" format={(v) => (v / 1000).toFixed(1)} good={1800} poor={3000} />
+                  <VitalPill label="TTFB" value={auditData.pageData.ttfb} unit="s" format={(v) => (v / 1000).toFixed(2)} good={800} poor={1800} />
+                </div>
+              )}
+
               <div className="mb-3">
                 <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
                   <span>{auditData.issues.length} issues found</span>
@@ -347,6 +357,30 @@ function ScanStep({ label, done }: { label: string; done: boolean }) {
   );
 }
 
+function VitalPill({ label, value, unit, format, good, poor }: {
+  label: string;
+  value: number | null;
+  unit: string;
+  format: (v: number) => string;
+  good: number;
+  poor: number;
+}) {
+  if (value === null) return (
+    <div className="bg-gray-900 rounded px-2 py-1.5 text-center">
+      <div className="text-[10px] text-gray-500">{label}</div>
+      <div className="text-xs text-gray-600">--</div>
+    </div>
+  );
+  const color = value <= good ? "text-green-400" : value <= poor ? "text-yellow-400" : "text-red-400";
+  const bg = value <= good ? "border-green-400/20" : value <= poor ? "border-yellow-400/20" : "border-red-400/20";
+  return (
+    <div className={`bg-gray-900 border ${bg} rounded px-2 py-1.5 text-center`}>
+      <div className="text-[10px] text-gray-500">{label}</div>
+      <div className={`text-xs font-medium ${color}`}>{format(value)}{unit}</div>
+    </div>
+  );
+}
+
 function analyzeCurrentPage() {
   const perf = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
   const resources = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
@@ -451,6 +485,23 @@ function analyzeCurrentPage() {
     'meta[property^="og:"], meta[name^="twitter:"]'
   ).length;
 
+  // Core Web Vitals
+  const lcpEntries = performance.getEntriesByType("largest-contentful-paint");
+  const lcp = lcpEntries.length > 0 ? (lcpEntries[lcpEntries.length - 1] as any).startTime : null;
+
+  const clsEntries = performance.getEntriesByType("layout-shift");
+  const cls = clsEntries.length > 0
+    ? clsEntries.reduce((sum, entry) => {
+        if (!(entry as any).hadRecentInput) sum += (entry as any).value;
+        return sum;
+      }, 0)
+    : null;
+
+  const paintEntries = performance.getEntriesByType("paint");
+  const fcp = paintEntries.find((e) => e.name === "first-contentful-paint")?.startTime ?? null;
+
+  const ttfb = perf ? perf.responseStart - perf.startTime : null;
+
   return {
     title: document.title,
     titleLength: document.title.length,
@@ -502,5 +553,9 @@ function analyzeCurrentPage() {
     metaKeywords: !!document.querySelector('meta[name="keywords"]'),
     hasSitemap: false, // Can't detect from client-side
     socialMetaTags,
+    lcp,
+    cls,
+    fcp,
+    ttfb,
   };
 }
